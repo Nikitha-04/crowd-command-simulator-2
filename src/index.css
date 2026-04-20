@@ -1,0 +1,45 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900 font-sans overflow-hidden transition-colors duration-300;
+  }
+  .dark body {
+    @apply bg-dark-bg text-gray-100;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-4 py-2 bg-accent-blue hover:bg-blue-600 text-white rounded-md transition-colors shadow-lg;
+  }
+  
+  .card-surface {
+    @apply bg-white border border-gray-200 rounded-xl shadow-md overflow-hidden transition-colors duration-300;
+  }
+  .dark .card-surface {
+    @apply bg-dark-surface border-gray-800 shadow-xl;
+  }
+  
+  .status-badge {
+    @apply px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider;
+  }
+}
+
+@keyframes waddle {
+  0%, 100% { transform: rotate(-10deg); }
+  50% { transform: rotate(10deg); }
+}
+
+.animate-waddle {
+  animation: waddle 0.5s ease-in-out infinite;
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
