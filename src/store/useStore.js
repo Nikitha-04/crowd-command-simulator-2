@@ -35,6 +35,31 @@ const useStore = create((set, get) => ({
   },
 
   connectSocket: () => {
+    // If we are on Vercel/Production, use HTTP Polling instead of WebSockets
+    const isProduction = window.location.hostname !== 'localhost';
+    
+    if (isProduction) {
+      console.log('[STORE] Using Vercel Serverless Polling Mode');
+      const fetchUpdates = async () => {
+        try {
+          const res = await fetch('/api/zones');
+          const data = await res.json();
+          set({ zones: data, isConnected: true });
+          
+          const incRes = await fetch('/api/incidents');
+          const incData = await incRes.json();
+          set({ incidents: incData });
+        } catch (err) {
+          console.error('Polling error:', err);
+        }
+      };
+      
+      fetchUpdates();
+      const interval = setInterval(fetchUpdates, 5000);
+      set({ pollingInterval: interval });
+      return;
+    }
+
     if (get().socket) return;
     
     const socket = io(URL, {
@@ -67,12 +92,10 @@ const useStore = create((set, get) => ({
     });
 
     socket.on('incident_list', (incidents) => {
-      console.log('[STORE] Received incident list:', incidents.length);
       set({ incidents });
     });
 
     socket.on('new_incident', (incident) => {
-      console.log('[STORE] New incident received:', incident.id);
       set(state => ({ incidents: [incident, ...state.incidents] }));
     });
 
@@ -88,7 +111,8 @@ const useStore = create((set, get) => ({
   },
 
   disconnectSocket: () => {
-    const { socket } = get();
+    const { socket, pollingInterval } = get();
+    if (pollingInterval) clearInterval(pollingInterval);
     if (socket) {
       socket.disconnect();
       set({ socket: null, isConnected: false });
@@ -102,13 +126,27 @@ const useStore = create((set, get) => ({
     }
   },
 
-  reportIncident: (incidentData) => {
+  reportIncident: async (incidentData) => {
     const { socket } = get();
+    const isProduction = window.location.hostname !== 'localhost';
+
+    if (isProduction) {
+      try {
+        const res = await fetch('/api/incidents', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(incidentData)
+        });
+        const data = await res.json();
+        set(state => ({ incidents: [data, ...state.incidents] }));
+        return;
+      } catch (err) {
+        console.error('Failed to report incident:', err);
+      }
+    }
+
     if (socket) {
-      console.log('[STORE] Emitting report_incident:', incidentData.category);
       socket.emit('report_incident', incidentData);
-    } else {
-      console.warn('[STORE] Cannot report incident: Socket not connected');
     }
   },
 
